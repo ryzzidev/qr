@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Link Secure Gate + Download</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="QR Locker">
+    <link rel="apple-touch-icon" href="https://files.catbox.moe/987sh0.png">
+    <meta name="theme-color" content="#0284c7">
+
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlFSIExpbmsgTG9ja2VyIEJ5IFJ5enppIiwKICAic2hvcnRfbmFtZSI6ICJRUiBMb2NrZXIiLAogICJkZXNjcmlwdGlvbiI6ICJCdWF0IGxpbmsgbWVuamFkaSBRUiBjb2RlIHlhbmcgdGVyZW5rcmlwc2kgZGFuIGFtYW4uIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwZjE3MmEiLAogICJ0aGVtZV9jb2xvciI6ICIjMDI4NGM3IiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9maWxlcy5jYXRib3gubW9lLzk4N3NoMC5wbmciLAogICAgICAic2l6ZXMiOiAiNTEyeDUxMiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIiwKICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIgogICAgfQogIF0KfQ==">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 550px;
+            margin: 30px auto;
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        h2 { text-align: center; color: #38bdf8; margin-top: 0; }
+        p.desc { text-align: center; font-size: 13px; color: #94a3b8; line-height: 1.5; }
+        .section {
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border: 1px solid #334155;
+        }
+        h3 { margin-top: 0; color: #f1f5f9; font-size: 16px; border-left: 4px solid #38bdf8; padding-left: 10px; }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #1e293b;
+            color: white;
+            font-size: 15px;
+            box-sizing: border-box;
+        }
+        input:focus { outline: none; border-color: #38bdf8; }
+        button {
+            background: #0284c7;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        button:hover { background: #0369a1; }
+        
+        .btn-download {
+            background: #22c55e;
+            margin-top: 15px;
+        }
+        .btn-download:hover {
+            background: #16a34a;
+        }
+
+        #qrcode-wrapper {
+            text-align: center;
+            margin-top: 20px;
+        }
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            width: fit-content;
+            margin: 0 auto;
+        }
+        #reader {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            border: none !important;
+        }
+        .status-box {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🔒 QR Link Locker By Ryzzi</h2>
+    <p class="desc">
+        Buat link menjadi QR code yang terenkripsi dan aman.
+    </p>
+
+    <div class="section">
+        <h3>buat link jadi qr kunci</h3>
+        <input type="url" id="link-input" placeholder="Masukkan link (contoh: https://google.com)">
+        <button onclick="generateSecureQR()">Generate QR</button>
+        
+        <div id="qrcode-wrapper" style="display:none;">
+            <div id="qrcode"></div>
+            <p style="color:#22c55e; text-align:center; font-size:12px; margin-top:10px; margin-bottom:5px;">✓ QR Berhasil Terenkripsi!</p>
+            <button class="btn-download" onclick="downloadQR()">📥 Download Gambar QR</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Scan Qr kunci untuk Buka Link</h3>
+        <div id="reader"></div>
+        <div id="status" class="status-box"></div>
+    </div>
+</div>
+
+<script>
+    // Kunci enkripsi agar tidak terbaca Google
+    const KEY_PREFIX = "SECURE_GATEWAY_BYPASS:";
+
+    // 1. FUNGSI MEMBUAT QR SECURE
+    function generateSecureQR() {
+        const linkInput = document.getElementById("link-input").value.trim();
+        const qrWrapper = document.getElementById("qrcode-wrapper");
+        const qrContainer = document.getElementById("qrcode");
+        
+        if (!linkInput) {
+            alert("Silakan masukkan link terlebih dahulu!");
+            return;
+        }
+
+        if (!linkInput.startsWith("http://") && !linkInput.startsWith("https://")) {
+            alert("Harus memasukkan URL lengkap dengan http:// atau https://");
+            return;
+        }
+        
+        qrContainer.innerHTML = ""; 
+        qrWrapper.style.display = "block";
+        
+        const encryptedLink = KEY_PREFIX + btoa(linkInput);
+
+        new QRCode(qrContainer, {
+            text: encryptedLink,
+            width: 180,
+            height: 180,
+            colorDark : "#0f172a",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    }
+
+    // 2. FUNGSI DOWNLOAD QR CODE
+    function downloadQR() {
+        const qrImage = document.querySelector("#qrcode img");
+        if (qrImage) {
+            const imageSrc = qrImage.src;
+            const downloadLink = document.createElement("a");
+            downloadLink.href = imageSrc;
+            downloadLink.download = "Ryzx_QR_Code.png";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        } else {
+            const qrCanvas = document.querySelector("#qrcode canvas");
+            if (qrCanvas) {
+                const imageSrc = qrCanvas.toDataURL("image/png");
+                const downloadLink = document.createElement("a");
+                downloadLink.href = imageSrc;
+                downloadLink.download = "Ryzx_QR_Code.png";
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            } else {
+                alert("Gagal mengunduh, silakan coba generate ulang.");
+            }
+        }
+    }
+
+    // 3. FUNGSI SCANNER & AUTO REDIRECT
+    function onScanSuccess(decodedText, decodedResult) {
+        const statusBox = document.getElementById("status");
+        statusBox.style.display = "block";
+
+        if (decodedText.startsWith(KEY_PREFIX)) {
+            statusBox.style.background = "#16a34a";
+            statusBox.style.color = "#ffffff";
+            statusBox.innerHTML = "🔄 Kode Valid! Mengalihkan ke halaman tujuan...";
+
+            const base64Data = decodedText.replace(KEY_PREFIX, "");
+            
+            try {
+                const originalLink = atob(base64Data);
+                html5QrcodeScanner.clear();
+                
+                setTimeout(() => {
+                    window.location.href = originalLink;
+                }, 1500);
+
+            } catch (e) {
+                statusBox.style.background = "#dc2626";
+                statusBox.innerHTML = "❌ Gagal memproses link. Kode rusak.";
+            }
+        } else {
+            statusBox.style.background = "#ea580c";
+            statusBox.style.color = "#ffffff";
+            statusBox.innerHTML = "⚠️ Ini QR Code biasa/tidak dikenal. Sistem menolak akses.";
+        }
+    }
+
+    function onScanFailure(error) {
+        // Abaikan error realtime
+    }
+
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", { fps: 10, qrbox: 220 }, false);
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+
+    // INJEKSI SERVICE WORKER IN-LINE (Tanpa File sw.js Terpisah)
+    if ('serviceWorker' in navigator) {
+        const swCode = `
+            const CACHE_NAME = 'qr-locker-v2';
+            self.addEventListener('install', (e) => {
+                e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(['.'])));
+            });
+            self.addEventListener('fetch', (e) => {
+                e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request)));
+            });
+        `;
+        const blob = new Blob([swCode], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register(swUrl, { scope: './' })
+                .then(reg => console.log('PWA Service Worker Aktif!'))
+                .catch(err => console.log('PWA Gagal:', err));
+        });
+    }
+</script>
+
+</body>
+</html>
